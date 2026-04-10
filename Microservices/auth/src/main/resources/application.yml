@@ -4,9 +4,6 @@ server:
 spring:
   application:
     name: AUTH-SERVICE
-  data:
-    mongodb:
-      uri: ${SPRING_MONGODB_URI:${MONGODB_URI:mongodb://localhost:27017/traveldb}}
 
 eureka:
   client:

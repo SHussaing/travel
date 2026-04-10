@@ -2,9 +2,6 @@ spring:
   application:
     name: GRAPH-SERVICE
 
-  mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/traveldb}
-
 server:
   port: 8085
   ssl:

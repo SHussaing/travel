@@ -2,15 +2,6 @@ spring:
   application:
     name: USER-SERVICE
 
-  mongodb:
-    uri: mongodb://localhost:27017/traveldb
-
-
-# JWT Configuration
-jwt:
-  secret: mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890
-  expiration: 86400000
-
 
 server:
   port: 8081

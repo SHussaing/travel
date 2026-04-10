@@ -2,10 +2,6 @@ spring:
   application:
     name: TRAVEL-SERVICE
 
-  mongodb:
-    uri: mongodb://localhost:27017/traveldb
-
-
 server:
   port: 8086
   ssl:

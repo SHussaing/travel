@@ -1,11 +1,4 @@
 services:
-  mongo:
-    image: mongo:7
-    container_name: travel-mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
 
   discovery:
     image: travel-discovery:${TAG:-latest}
@@ -46,13 +39,10 @@ services:
       context: ./Microservices/user
     container_name: travel-user
     depends_on:
-      - mongo
       - discovery
     environment:
       - SPRING_APPLICATION_NAME=USER-SERVICE
-      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
-      - JWT_SECRET=mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890
 
   auth:
     image: travel-auth:${TAG:-latest}
@@ -60,11 +50,9 @@ services:
       context: ./Microservices/auth
     container_name: travel-auth
     depends_on:
-      - mongo
       - discovery
     environment:
       - SPRING_APPLICATION_NAME=AUTH-SERVICE
-      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
 
   graph:
@@ -73,11 +61,9 @@ services:
       context: Microservices/graph
     container_name: travel-graph
     depends_on:
-      - mongo
       - discovery
     environment:
       - SPRING_APPLICATION_NAME=GRAPH-SERVICE
-      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
     volumes:
       - media_data:/data/media
@@ -88,11 +74,9 @@ services:
       context: Microservices/payment
     container_name: travel-payment
     depends_on:
-      - mongo
       - discovery
     environment:
       - SPRING_APPLICATION_NAME=PAYMENT-SERVICE
-      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
 
   travel:
@@ -101,11 +85,9 @@ services:
       context: Microservices/travel
     container_name: travel-travel
     depends_on:
-      - mongo
       - discovery
     environment:
       - SPRING_APPLICATION_NAME=TRAVEL-SERVICE
-      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
 
   frontend:
@@ -123,5 +105,4 @@ services:
       - NODE_ENV=production
 
 volumes:
-  mongo_data:
   media_data:
