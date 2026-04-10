@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: GRAPH-SERVICE
+
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/traveldb}
+
+server:
+  port: 8085
+  ssl:
+    enabled: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}

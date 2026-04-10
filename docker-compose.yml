@@ -1,0 +1,127 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: travel-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  discovery:
+    image: travel-discovery:${TAG:-latest}
+    build:
+      context: Microservices/discovery
+    container_name: travel-discovery
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  gateway:
+    image: travel-gateway:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Microservices/gateway/Dockerfile
+    container_name: travel-gateway
+    depends_on:
+      - discovery
+      - user
+      - graph
+      - payment
+      - travel
+      - auth
+    ports:
+      - "8443:8443"
+    environment:
+      # Eureka
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+      # JWT
+      - JWT_SECRET=mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890
+      - GATEWAY_KEYSTORE_PASSWORD=changeit
+      - GATEWAY_KEY_ALIAS=shared
+
+  user:
+    image: travel-user:${TAG:-latest}
+    build:
+      context: ./Microservices/user
+    container_name: travel-user
+    depends_on:
+      - mongo
+      - discovery
+    environment:
+      - SPRING_APPLICATION_NAME=USER-SERVICE
+      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+      - JWT_SECRET=mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890
+
+  auth:
+    image: travel-auth:${TAG:-latest}
+    build:
+      context: ./Microservices/auth
+    container_name: travel-auth
+    depends_on:
+      - mongo
+      - discovery
+    environment:
+      - SPRING_APPLICATION_NAME=AUTH-SERVICE
+      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+
+  graph:
+    image: travel-graph:${TAG:-latest}
+    build:
+      context: Microservices/graph
+    container_name: travel-graph
+    depends_on:
+      - mongo
+      - discovery
+    environment:
+      - SPRING_APPLICATION_NAME=GRAPH-SERVICE
+      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+    volumes:
+      - media_data:/data/media
+
+  payment:
+    image: travel-payment:${TAG:-latest}
+    build:
+      context: Microservices/payment
+    container_name: travel-payment
+    depends_on:
+      - mongo
+      - discovery
+    environment:
+      - SPRING_APPLICATION_NAME=PAYMENT-SERVICE
+      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+
+  travel:
+    image: travel-travel:${TAG:-latest}
+    build:
+      context: Microservices/travel
+    container_name: travel-travel
+    depends_on:
+      - mongo
+      - discovery
+    environment:
+      - SPRING_APPLICATION_NAME=TRAVEL-SERVICE
+      - SPRING_MONGODB_URI=mongodb://mongo:27017/traveldb
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+
+  frontend:
+    image: travel-frontend:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Frontend-Application/Dockerfile
+    container_name: travel-frontend
+    depends_on:
+      - gateway
+    ports:
+      - "4200:443"
+      - "4201:80"
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  mongo_data:
+  media_data:
