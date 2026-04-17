@@ -126,6 +126,8 @@ management:
 
 # Logging
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} [requestId=%X{requestId}] - %msg%n"
   level:
     org.springframework.cloud.gateway: DEBUG
     org.springframework.security: DEBUG

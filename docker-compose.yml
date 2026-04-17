@@ -1,5 +1,49 @@
 services:
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: travel-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-travel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-travelpass}
+      POSTGRES_DB: ${POSTGRES_DB:-travel}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-travel} -d ${POSTGRES_DB:-travel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - travel-net
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: travel-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-neo4jpass}
+      NEO4J_server_memory_pagecache_size: 512M
+      NEO4J_server_memory_heap_initial__size: 512M
+      NEO4J_server_memory_heap_max__size: 512M
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      # neo4j image includes curl. Avoid wget which may not exist in some slim images.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:7474 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - travel-net
+
   discovery:
     image: travel-discovery:${TAG:-latest}
     build:
@@ -9,6 +53,13 @@ services:
       - "8761:8761"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - travel-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health >/dev/null || curl -fsS http://localhost:8761/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   gateway:
     image: travel-gateway:${TAG:-latest}
@@ -17,21 +68,36 @@ services:
       dockerfile: Microservices/gateway/Dockerfile
     container_name: travel-gateway
     depends_on:
-      - discovery
-      - user
-      - graph
-      - payment
-      - travel
-      - auth
+      discovery:
+        condition: service_healthy
+      user:
+        condition: service_started
+      graph:
+        condition: service_started
+      payment:
+        condition: service_started
+      travel:
+        condition: service_started
+      auth:
+        condition: service_started
     ports:
       - "8443:8443"
     environment:
       # Eureka
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
       # JWT
-      - JWT_SECRET=mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
       - GATEWAY_KEYSTORE_PASSWORD=changeit
       - GATEWAY_KEY_ALIAS=shared
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - travel-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -kfsS https://localhost:8443/actuator/health >/dev/null || curl -kfsS https://localhost:8443/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 8s
+      retries: 20
 
   user:
     image: travel-user:${TAG:-latest}
@@ -39,10 +105,18 @@ services:
       context: ./Microservices/user
     container_name: travel-user
     depends_on:
-      - discovery
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       - SPRING_APPLICATION_NAME=USER-SERVICE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890}
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+    networks:
+      - travel-net
 
   auth:
     image: travel-auth:${TAG:-latest}
@@ -50,10 +124,18 @@ services:
       context: ./Microservices/auth
     container_name: travel-auth
     depends_on:
-      - discovery
+      discovery:
+        condition: service_started
     environment:
       - SPRING_APPLICATION_NAME=AUTH-SERVICE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - travel-net
 
   graph:
     image: travel-graph:${TAG:-latest}
@@ -61,12 +143,22 @@ services:
       context: Microservices/graph
     container_name: travel-graph
     depends_on:
-      - discovery
+      discovery:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
     environment:
       - SPRING_APPLICATION_NAME=GRAPH-SERVICE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+      # Future (when graph service uses Neo4j driver):
+      - SPRING_NEO4J_URI=bolt://neo4j:7687
+      - SPRING_NEO4J_AUTHENTICATION_USERNAME=${NEO4J_USER:-neo4j}
+      - SPRING_NEO4J_AUTHENTICATION_PASSWORD=${NEO4J_PASSWORD:-neo4jpass}
+      - SPRING_PROFILES_ACTIVE=docker
     volumes:
       - media_data:/data/media
+    networks:
+      - travel-net
 
   payment:
     image: travel-payment:${TAG:-latest}
@@ -74,10 +166,22 @@ services:
       context: Microservices/payment
     container_name: travel-payment
     depends_on:
-      - discovery
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       - SPRING_APPLICATION_NAME=PAYMENT-SERVICE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+      # Future (when switching to Postgres):
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-travel}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-travel}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-travelpass}
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+    networks:
+      - travel-net
 
   travel:
     image: travel-travel:${TAG:-latest}
@@ -85,10 +189,22 @@ services:
       context: Microservices/travel
     container_name: travel-travel
     depends_on:
-      - discovery
+      discovery:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     environment:
       - SPRING_APPLICATION_NAME=TRAVEL-SERVICE
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery:8761/eureka/
+      # Future (when switching to Postgres):
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-travel}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-travel}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-travelpass}
+      - SPRING_PROFILES_ACTIVE=docker
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+    networks:
+      - travel-net
 
   frontend:
     image: travel-frontend:${TAG:-latest}
@@ -103,6 +219,15 @@ services:
       - "4201:80"
     environment:
       - NODE_ENV=production
+    networks:
+      - travel-net
 
 volumes:
   media_data:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+
+networks:
+  travel-net:
+    driver: bridge

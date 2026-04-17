@@ -9,3 +9,18 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+admin:
+  bootstrap:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:admin123}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} [requestId=%X{requestId}] - %msg%n"
+  level:
+    org.springframework.security: INFO
