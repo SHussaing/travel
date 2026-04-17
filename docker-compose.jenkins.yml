@@ -12,15 +12,17 @@ services:
     volumes:
       # Persist Jenkins data - mount at same path for Docker volume compatibility
       - jenkins_home:/var/jenkins_home
-      # Mount Docker socket (Docker-out-of-Docker)
-      - //var/run/docker.sock:/var/run/docker.sock
+      # Docker Desktop (Windows) named pipe for Linux engine (Docker-out-of-Docker)
+      - //./pipe/dockerDesktopLinuxEngine://./pipe/dockerDesktopLinuxEngine
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
     restart: unless-stopped
+    networks:
+      - jenkins-net
 
 volumes:
   jenkins_home:
 
 networks:
-  nexus_net:
-    external: true
+  jenkins-net:
+    driver: bridge

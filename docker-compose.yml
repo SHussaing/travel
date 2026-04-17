@@ -36,11 +36,16 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
     healthcheck:
-      # neo4j image includes curl. Avoid wget which may not exist in some slim images.
-      test: ["CMD-SHELL", "curl -fsS http://localhost:7474 >/dev/null || exit 1"]
+      # Verify Neo4j is ready by executing a simple Cypher query.
+      # NOTE: cypher-shell is included in the official neo4j image.
+      test:
+        [
+          "CMD-SHELL",
+          "cypher-shell -a bolt://localhost:7687 -u ${NEO4J_USER:-neo4j} -p ${NEO4J_PASSWORD:-neo4jpass} 'RETURN 1' >/dev/null 2>&1 || exit 1"
+        ]
       interval: 10s
-      timeout: 5s
-      retries: 15
+      timeout: 10s
+      retries: 30
     networks:
       - travel-net
 
@@ -55,11 +60,6 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - travel-net
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health >/dev/null || curl -fsS http://localhost:8761/ >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
 
   gateway:
     image: travel-gateway:${TAG:-latest}
@@ -69,7 +69,7 @@ services:
     container_name: travel-gateway
     depends_on:
       discovery:
-        condition: service_healthy
+        condition: service_started
       user:
         condition: service_started
       graph:
@@ -93,11 +93,6 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - travel-net
-    healthcheck:
-      test: ["CMD-SHELL", "curl -kfsS https://localhost:8443/actuator/health >/dev/null || curl -kfsS https://localhost:8443/ >/dev/null || exit 1"]
-      interval: 10s
-      timeout: 8s
-      retries: 20
 
   user:
     image: travel-user:${TAG:-latest}
@@ -115,6 +110,9 @@ services:
       - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationThatIsAtLeast256BitsLong12345678901234567890}
       - SPRING_PROFILES_ACTIVE=docker
       - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-travel}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-travel}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-travelpass}
     networks:
       - travel-net
 
