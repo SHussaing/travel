@@ -47,10 +47,6 @@ import { AuthService } from './auth.service';
 
         <p *ngIf="error()" class="text-sm text-red-600">{{ error() }}</p>
       </form>
-
-      <p class="text-xs text-slate-500">
-        This login uses the Auth microservice via the Gateway.
-      </p>
     </section>
   `
 })
@@ -74,8 +70,13 @@ export class LoginComponent {
       await this.auth.loginAdmin({ username: this.username, password: this.password });
       await this.router.navigateByUrl('/admin');
     } catch (e: any) {
-      const msg = e?.error?.message ?? e?.message ?? 'Login failed';
-      this.error.set(String(msg));
+      const status = e?.status;
+
+      if (status === 401) {
+        this.error.set('Invalid username or password.');
+      } else {
+        this.error.set('Sign-in is temporarily unavailable. Please try again.');
+      }
     } finally {
       this.loading.set(false);
     }
