@@ -10,6 +10,8 @@ import org.springframework.security.web.server.authentication.AuthenticationWebF
 import org.springframework.security.web.server.authentication.ServerAuthenticationFailureHandler;
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
+import org.springframework.security.web.server.util.matcher.NegatedServerWebExchangeMatcher;
+import org.springframework.security.web.server.util.matcher.OrServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import reactor.core.publisher.Mono;
 
@@ -23,7 +25,15 @@ public class SecurityConfig {
 
         AuthenticationWebFilter bearerAuthFilter = new AuthenticationWebFilter(authenticationManager);
         bearerAuthFilter.setServerAuthenticationConverter(authenticationConverter);
-        bearerAuthFilter.setRequiresAuthenticationMatcher(ServerWebExchangeMatchers.pathMatchers("/**"));
+        // Require authentication for all paths EXCEPT /auth/** and /actuator/**
+        bearerAuthFilter.setRequiresAuthenticationMatcher(
+                new NegatedServerWebExchangeMatcher(
+                        new OrServerWebExchangeMatcher(
+                                ServerWebExchangeMatchers.pathMatchers("/auth/**"),
+                                ServerWebExchangeMatchers.pathMatchers("/actuator/**")
+                        )
+                )
+        );
 
         // Don't redirect or trigger Basic auth challenges; just return 401.
         bearerAuthFilter.setAuthenticationFailureHandler(unauthorizedFailureHandler());
