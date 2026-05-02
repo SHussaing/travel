@@ -193,7 +193,8 @@ export class PaymentMethodsComponent implements OnInit {
 
     this.paymentMethodService.getPaymentMethods().subscribe({
       next: (data) => {
-        this.paymentMethods.set(data);
+        const safeMethods = Array.isArray(data) ? data : [];
+        this.paymentMethods.set(safeMethods);
         this.isLoading.set(false);
       },
       error: (error) => {

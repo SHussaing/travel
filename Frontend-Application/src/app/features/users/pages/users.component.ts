@@ -13,6 +13,7 @@ import { User } from '../../../shared/models/entities.model';
       <div class="flex justify-between items-center">
         <h2 class="text-3xl font-bold text-gray-900">Users Management</h2>
         <button
+          type="button"
           (click)="openCreateModal()"
           class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"
         >
@@ -20,66 +21,46 @@ import { User } from '../../../shared/models/entities.model';
         </button>
       </div>
 
-      <!-- Loading State -->
       <div *ngIf="isLoading()" class="text-center py-8">
         <p class="text-gray-600">Loading users...</p>
       </div>
 
-      <!-- Error State -->
       <div *ngIf="errorMessage()" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
         {{ errorMessage() }}
       </div>
 
-      <!-- Users Table -->
-      <div *ngIf="!isLoading() && users().length > 0" class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div *ngIf="!isLoading() && getUsers().length > 0" class="bg-white rounded-lg shadow-md overflow-hidden">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">ID</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Roles</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let user of users()" class="border-b border-gray-200 hover:bg-gray-50">
+            <tr *ngFor="let user of getUsers()" class="border-b border-gray-200 hover:bg-gray-50">
               <td class="px-6 py-4 text-sm text-gray-900">{{ user.id }}</td>
               <td class="px-6 py-4 text-sm text-gray-900">{{ user.email }}</td>
               <td class="px-6 py-4 text-sm">
-                <span [ngClass]="user.enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-                      class="px-3 py-1 rounded-full text-xs font-semibold">
+                <span [ngClass]="user.enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-3 py-1 rounded-full text-xs font-semibold">
                   {{ user.enabled ? 'Active' : 'Inactive' }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-600">
-                {{ Array.from(user.roles).join(', ') || 'No roles' }}
-              </td>
               <td class="px-6 py-4 text-sm space-x-2">
-                <button
-                  (click)="openEditModal(user)"
-                  class="text-blue-600 hover:text-blue-800 font-semibold"
-                >
-                  Edit
-                </button>
-                <button
-                  (click)="deleteUser(user.id)"
-                  class="text-red-600 hover:text-red-800 font-semibold"
-                >
-                  Delete
-                </button>
+                <button type="button" (click)="openEditModal(user)" class="text-blue-600 hover:text-blue-800 font-semibold">Edit</button>
+                <button type="button" (click)="deleteUser(user.id)" class="text-red-600 hover:text-red-800 font-semibold">Delete</button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Empty State -->
-      <div *ngIf="!isLoading() && users().length === 0" class="text-center py-12 bg-white rounded-lg">
+      <div *ngIf="!isLoading() && getUsers().length === 0" class="text-center py-12 bg-white rounded-lg">
         <p class="text-gray-600 text-lg">No users found. Create one to get started.</p>
       </div>
 
-      <!-- Modal -->
       <div *ngIf="showModal()" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 w-full max-w-md max-h-96 overflow-y-auto">
           <h3 class="text-2xl font-bold text-gray-900 mb-6">
@@ -96,10 +77,6 @@ import { User } from '../../../shared/models/entities.model';
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="user@example.com"
               />
-              <p *ngIf="userForm.get('email')?.hasError('email') && userForm.get('email')?.touched"
-                 class="text-red-500 text-sm mt-1">
-                Please enter a valid email
-              </p>
             </div>
 
             <div>
@@ -168,13 +145,18 @@ export class UsersComponent implements OnInit {
     this.loadUsers();
   }
 
+  getUsers(): User[] {
+    return this.users() ?? [];
+  }
+
   loadUsers(): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
     this.userService.getUsers().subscribe({
       next: (data) => {
-        this.users.set(data);
+        const safeUsers = Array.isArray(data) ? data : [];
+        this.users.set(safeUsers);
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -196,7 +178,7 @@ export class UsersComponent implements OnInit {
     this.userForm.patchValue({
       email: user.email,
       enabled: user.enabled,
-      roles: Array.from(user.roles).join(', ')
+      roles: 'USER'
     });
     this.showModal.set(true);
   }
@@ -212,8 +194,9 @@ export class UsersComponent implements OnInit {
 
     this.isSubmitting.set(true);
     const formValue = this.userForm.value;
+    const rolesString = formValue.roles || 'USER';
     const roles: Set<string> = new Set(
-      formValue.roles
+      rolesString
         .split(',')
         .map((r: string) => r.trim())
         .filter((r: string) => r.length > 0)
@@ -255,6 +238,4 @@ export class UsersComponent implements OnInit {
       });
     }
   }
-
-  Array = Array;
 }

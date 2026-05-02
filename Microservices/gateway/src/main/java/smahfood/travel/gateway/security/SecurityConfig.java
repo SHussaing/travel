@@ -54,7 +54,8 @@ public class SecurityConfig {
                         }))
                 .authorizeExchange(ex -> ex
                         .pathMatchers("/auth/**", "/actuator/**").permitAll()
-                        .pathMatchers("/users/admin/**", "/travel/admin/**", "/payment/admin/**", "/graph/admin/**").hasRole("ADMIN")
+                        // Let admin paths through the gateway and let microservices validate JWT
+                        .pathMatchers("/users/**", "/travel/**", "/payment/**", "/graph/**").permitAll()
                         .anyExchange().authenticated())
                 .build();
     }

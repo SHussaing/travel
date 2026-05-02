@@ -217,7 +217,8 @@ export class TravelsComponent implements OnInit {
 
     this.travelService.getTravels().subscribe({
       next: (data) => {
-        this.travels.set(data);
+        const safeTravels = Array.isArray(data) ? data : [];
+        this.travels.set(safeTravels);
         this.isLoading.set(false);
       },
       error: (error) => {
