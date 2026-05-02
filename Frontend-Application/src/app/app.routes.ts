@@ -1,41 +1,50 @@
 import { Routes } from '@angular/router';
-import { AdminDashboardComponent } from './admin/admin-dashboard.component';
-import { authGuard } from './auth/auth.guard';
-
-const placeholder = (title: string) => ({
-  title,
-  canActivate: [authGuard],
-  loadComponent: async () => (await import('./shared/placeholder-page.component')).PlaceholderPageComponent
-});
+import { LoginComponent } from './features/auth/pages/login.component';
+import { DashboardComponent } from './features/dashboard/pages/dashboard.component';
+import { UsersComponent } from './features/users/pages/users.component';
+import { TravelsComponent } from './features/travels/pages/travels.component';
+import { PaymentMethodsComponent } from './features/payment/pages/payment-methods.component';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: 'login', loadComponent: async () => (await import('./auth/login.component')).LoginComponent },
-
-  { path: '', pathMatch: 'full', redirectTo: 'admin' },
-  { path: 'admin', component: AdminDashboardComponent, title: 'Admin Dashboard', canActivate: [authGuard] },
   {
-    path: 'admin/users',
-    title: 'Users',
-    canActivate: [authGuard],
-    loadComponent: async () => (await import('./admin/users/users-page.component')).UsersPageComponent
+    path: '',
+    redirectTo: 'login',
+    pathMatch: 'full'
   },
   {
-    path: 'admin/travels',
-    title: 'Travels',
-    canActivate: [authGuard],
-    loadComponent: async () => (await import('./admin/travels/travels-page.component')).TravelsPageComponent
+    path: 'login',
+    component: LoginComponent
   },
   {
-    path: 'admin/payments',
-    title: 'Payments',
+    path: 'dashboard',
+    component: DashboardComponent,
     canActivate: [authGuard],
-    loadComponent: async () => (await import('./admin/payments/payments-page.component')).PaymentsPageComponent
+    children: [
+      {
+        path: 'users',
+        component: UsersComponent,
+        canActivate: [authGuard]
+      },
+      {
+        path: 'travels',
+        component: TravelsComponent,
+        canActivate: [authGuard]
+      },
+      {
+        path: 'payment-methods',
+        component: PaymentMethodsComponent,
+        canActivate: [authGuard]
+      },
+      {
+        path: '',
+        redirectTo: 'users',
+        pathMatch: 'full'
+      }
+    ]
   },
   {
-    path: 'admin/graph',
-    title: 'Graph',
-    canActivate: [authGuard],
-    loadComponent: async () => (await import('./admin/graph/graph-page.component')).GraphPageComponent
-  },
-  { path: '**', redirectTo: 'admin' }
+    path: '**',
+    redirectTo: 'login'
+  }
 ];
