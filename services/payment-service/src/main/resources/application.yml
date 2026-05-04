@@ -1,0 +1,132 @@
+spring:
+  application:
+    name: payment-service
+
+  config:
+    import: optional:file:/home/moussa/dev/travel-management-system/.env[.properties]
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/payment_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+server:
+  port: 9084
+  ssl:
+    enabled: false   # ✅ IMPORTANT: only gateway uses HTTPS
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGeneration2024}
+  expiration: ${JWT_EXPIRATION:86400000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://registry-service:8761/eureka/}
+    fetch-registry: true
+    register-with-eureka: true
+
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    secure-port-enabled: false
+    non-secure-port-enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+stripe:
+  api:
+    key: ${STRIPE_API_KEY:sk_test_default}
+  webhook:
+    secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_default}
+  success:
+    url: ${STRIPE_SUCCESS_URL:http://localhost:9080/payment/success}
+  cancel:
+    url: ${STRIPE_CANCEL_URL:http://localhost:9080/payment/cancel}
+
+paypal:
+  client:
+    id: ${PAYPAL_CLIENT_ID:sb_client_id}
+    secret: ${PAYPAL_CLIENT_SECRET:sb_client_secret}
+  mode: ${PAYPAL_MODE:sandbox}
+  return:
+    url: ${PAYPAL_RETURN_URL:http://localhost:9080/payment/paypal/return}
+  cancel:
+    url: ${PAYPAL_CANCEL_URL:http://localhost:9080/payment/paypal/cancel}
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+    retries: 3
+  consumer:
+    group-id: payment-service-group
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    properties:
+      spring.json.trusted.packages: "*"
+    auto-offset-reset: earliest
+  topics:
+    payment-completed: payment-completed-events
+    payment-refunded: payment-refunded-events
+    order-created: order-created-events
+    user-deleted: user-deleted-events
+
+logging:
+  level:
+    com.travelms.payment: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+
+---
+# Docker Profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:payment_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://registry-service:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    secure-port-enabled: false
+    non-secure-port-enabled: true
+
+kafka:
+  bootstrap-servers: kafka:9092
+
+server:
+  port: 9084
+
+logging:
+  level:
+    com.travelms.payment: INFO

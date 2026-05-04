@@ -1,0 +1,49 @@
+server:
+  port: 8761
+  ssl:
+    enabled: false   # ✅ IMPORTANT: disable HTTPS
+
+spring:
+  application:
+    name: registry-service
+
+eureka:
+  instance:
+    hostname: registry-service
+    prefer-ip-address: true
+
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+
+  server:
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 15000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+---
+# Docker Profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+eureka:
+  instance:
+    hostname: registry-service
+    prefer-ip-address: true
+    non-secure-port-enabled: true
+    secure-port-enabled: false
+
+server:
+  port: 8761
+  ssl:
+    enabled: false

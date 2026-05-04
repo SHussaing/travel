@@ -1,0 +1,156 @@
+spring:
+  application:
+    name: feedback-service
+
+  config:
+    import: optional:file:/home/moussa/dev/travel-management-system/.env[.properties]
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:feedback_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+
+server:
+  port: 9085
+  ssl:
+    enabled: ${SSL_ENABLED:false}   # ⛔ keep FALSE (internal service)
+
+
+# =========================
+# MICROSERVICES (HTTP ONLY INTERNALLY)
+# =========================
+travel-service:
+  url: ${TRAVEL_SERVICE_URL:http://travel-service:9083}
+
+user-service:
+  url: ${USER_SERVICE_URL:http://user-service:9082}
+
+
+# =========================
+# EUREKA (FIXED)
+# =========================
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://registry-service:8761/eureka/}
+    fetch-registry: true
+    register-with-eureka: true
+
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    secure-port-enabled: false
+    non-secure-port-enabled: true
+
+
+# =========================
+# JWT
+# =========================
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForJWTTokenGeneration2024}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+
+# =========================
+# MANAGEMENT
+# =========================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+
+# =========================
+# LOGGING
+# =========================
+logging:
+  level:
+    com.travelms.feedback: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+
+
+# =========================
+# SWAGGER
+# =========================
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+
+# =========================
+# KAFKA
+# =========================
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    acks: all
+    retries: 3
+
+  consumer:
+    group-id: feedback-service-group
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+    properties:
+      spring.json.trusted.packages: "*"
+    auto-offset-reset: earliest
+
+  topics:
+    user-deleted: user-deleted-events
+    feedback-changed: feedback-changed-events
+
+---
+# Docker Profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:feedback_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://registry-service:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+    secure-port-enabled: false
+    non-secure-port-enabled: true
+
+kafka:
+  bootstrap-servers: kafka:9092
+
+server:
+  port: 9085
+
+logging:
+  level:
+    com.travelms.feedback: INFO
