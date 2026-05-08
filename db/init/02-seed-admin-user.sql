@@ -11,7 +11,7 @@ VALUES (
     1,
     'admin',
     'admin@travelms.com',
-    '$2a$10$xgKRZ8qKXVXqLLV8fJQN5.dQfJ0qE2b9mHLqKqZ8vQZKqLqZ8vQZK', -- BCrypt hash of 'admin123'
+    '$2a$10$xgKRZ8qKXVXqLLV8fJQN5.dQfJ0qE2b9mHLqKqZ8vQZKqLqZ8vQZK', -- BCrypt hash of 'Admin123'
     'System',
     'Administrator',
     'ADMIN',

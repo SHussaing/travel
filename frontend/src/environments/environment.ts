@@ -3,10 +3,10 @@ export const environment = {
   apiUrl: 'https://localhost:9080',
   // IMPORTANT: This must be your Stripe PUBLISHABLE key (pk_test_...), NOT secret key (sk_test_...)
   // Get your publishable key from: https://dashboard.stripe.com/test/apikeys
-  stripePublicKey: 'pk_test_51Qoq2iA0ESShc8j98vcBdOqfojuxg1Ck0mGEN6jbmILjYqtbO0ru7TNSsuGq0Ni769iIg5gWoYQy77I9tcTLmeez00PCLYk9mP', // Replace with your Stripe PUBLISHABLE key
+  stripePublicKey: 'pk_test_51TUrn13pcwa5FhNoIsfo895z5dEIJrAmul6WTWZYif7HVsTcslp0crkA55ZwKOCr3vmWrX43T1x2nV3IQkBv9Zic002fueKf0d', // Replace with your Stripe PUBLISHABLE key
   googleMapsApiKey: 'AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', // Replace with your Google Maps API key
   // Get your PayPal client ID from: https://developer.paypal.com/dashboard/applications/sandbox
-  paypalClientId: 'ASJItSF796pXcHJ3_hipemmX0X71ICeBYDZ_DyM9JiBRRI2D461yQyxW3WvPgw6eBnaE8ZR8rFg9UvHq', // Replace with your PayPal Sandbox Client ID
+  paypalClientId: 'AZwSOSaMgMM90lzjWIWOxU_g73gt8R7Nkl1YBArOMroWuDQpb9B8nyOcUpNt18D1P0jfmGpRrZSaSlvH', // Replace with your PayPal Sandbox Client ID
   endpoints: {
     auth: {
       login: '/api/v1/auth/login',
